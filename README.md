@@ -5,7 +5,9 @@ Enterprise-grade **Spring Boot 3** REST API powering automated student performan
 ## 🛠️ Architecture & Tech Stack
 - **Framework:** Spring Boot 3.2.4 (Java 17/21)
 - **Security:** Spring Security 6 with JWT Token Authentication (`jjwt`)
-- **Persistence:** Spring Data JPA / Hibernate (H2 for zero-setup & PostgreSQL for production)
+- **Database:** **PostgreSQL (Render Managed Database: `project_9hb8`)**
+  - Database URL: `jdbc:postgresql://dpg-db74440u01pc73c6tkvg-a:5432/project_9hb8`
+  - User: `project_9hb8_user`
 - **Machine Learning Core:**
   - **Ensemble Random Forest:** 50 Bagged Trees modeling threshold risk factors (attendance penalty curves, continuous assessment vulnerabilities)
   - **Multi-Layer Perceptron (Deep ANN):** 3-Layer feedforward neural network for continuous GPA regression
@@ -26,4 +28,4 @@ Enterprise-grade **Spring Boot 3** REST API powering automated student performan
 1. Create a **New Web Service** on [Render](https://render.com).
 2. Connect this repository (`https://github.com/24eg107e01-dot/Backend.git`).
 3. Select **Docker** environment (Render automatically detects `Dockerfile`).
-4. Port is dynamically configured to `$PORT` (default 8080).
+4. Connected PostgreSQL Database: `project_9hb8`.
