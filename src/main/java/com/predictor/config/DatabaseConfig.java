@@ -9,14 +9,12 @@ import org.springframework.context.annotation.Primary;
 
 import javax.sql.DataSource;
 import java.net.URI;
-import java.sql.Connection;
-import java.sql.DriverManager;
 
 @Configuration
 @Slf4j
 public class DatabaseConfig {
 
-    @Value("${spring.datasource.url:jdbc:postgresql://dpg-db74440u01pc73c6tkvg-a:5432/project_9hb8}")
+    @Value("${spring.datasource.url:jdbc:postgresql://dpg-db74440u01pc73c6tkvg-a.oregon-postgres.render.com:5432/project_9hb8?sslmode=require}")
     private String defaultUrl;
 
     @Value("${spring.datasource.username:project_9hb8_user}")
@@ -60,54 +58,34 @@ public class DatabaseConfig {
                 }
                 int port = uri.getPort() == -1 ? 5432 : uri.getPort();
                 String host = uri.getHost();
+                
+                // If Render short internal host (dpg-xxxx), expand to public DNS to prevent UnknownHostException
+                if (host != null && host.startsWith("dpg-") && !host.contains(".")) {
+                    host = host + ".oregon-postgres.render.com";
+                }
+
                 String path = uri.getPath();
-                dbUrl = "jdbc:postgresql://" + host + ":" + port + path;
-                log.info("Converted Render DATABASE_URL to JDBC: {}", dbUrl);
+                dbUrl = "jdbc:postgresql://" + host + ":" + port + path + "?sslmode=require";
+                log.info("Converted Render URI to JDBC with external DNS: {}", dbUrl);
             } catch (Exception e) {
                 log.warn("Error parsing DATABASE_URL URI, using as-is", e);
             }
-        }
-
-        // Test connectivity to PostgreSQL (handles Render internal host vs local fallback)
-        boolean postgresReachable = false;
-        try {
-            Class.forName("org.postgresql.Driver");
-            DriverManager.setLoginTimeout(3);
-            try (Connection conn = DriverManager.getConnection(dbUrl, username, password)) {
-                postgresReachable = true;
-                log.info("Successfully connected to Render PostgreSQL database: {}", dbUrl);
+        } else if (dbUrl.contains("dpg-") && !dbUrl.contains(".render.com")) {
+            // Fix short hostname inside JDBC url if passed directly
+            dbUrl = dbUrl.replaceFirst("(dpg-[a-zA-Z0-9]+)(:|/)", "$1.oregon-postgres.render.com$2");
+            if (!dbUrl.contains("sslmode=")) {
+                dbUrl += (dbUrl.contains("?") ? "&" : "?") + "sslmode=require";
             }
-        } catch (Exception e) {
-            log.warn("PostgreSQL at {} unreachable ({}), checking environment...", dbUrl, e.getMessage());
+            log.info("Auto-expanded short Render database host to: {}", dbUrl);
         }
 
-        if (postgresReachable) {
-            return DataSourceBuilder.create()
-                    .driverClassName("org.postgresql.Driver")
-                    .url(dbUrl)
-                    .username(username)
-                    .password(password)
-                    .build();
-        }
+        log.info("Configuring PostgreSQL DataSource with URL: {} for user: {}", dbUrl, username);
 
-        // If running in Render production, proceed with PostgreSQL configuration
-        if (System.getenv("RENDER") != null || System.getenv("PORT") != null || dbUrl.contains("dpg-")) {
-            log.info("Deploying with PostgreSQL configuration: {}", dbUrl);
-            return DataSourceBuilder.create()
-                    .driverClassName("org.postgresql.Driver")
-                    .url(dbUrl)
-                    .username(username)
-                    .password(password)
-                    .build();
-        }
-
-        // Local development zero-setup fallback
-        log.info("Local environment: using embedded H2 database fallback.");
         return DataSourceBuilder.create()
-                .driverClassName("org.h2.Driver")
-                .url("jdbc:h2:mem:studentdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL")
-                .username("sa")
-                .password("")
+                .driverClassName("org.postgresql.Driver")
+                .url(dbUrl)
+                .username(username)
+                .password(password)
                 .build();
     }
 }

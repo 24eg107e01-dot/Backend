@@ -12,7 +12,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: SPRING_DATASOURCE_URL
-        value: jdbc:postgresql://dpg-db74440u01pc73c6tkvg-a:5432/project_9hb8
+        value: jdbc:postgresql://dpg-db74440u01pc73c6tkvg-a.oregon-postgres.render.com:5432/project_9hb8?sslmode=require
       - key: SPRING_DATASOURCE_USERNAME
         value: project_9hb8_user
       - key: SPRING_DATASOURCE_PASSWORD
